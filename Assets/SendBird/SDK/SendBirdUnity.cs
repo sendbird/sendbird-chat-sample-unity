@@ -1,18 +1,14 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 
 using System;
+using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 
 using SendBird;
 using SendBird.Model;
-
-using UnityEngine.UI;
 using SendBird.Query;
-using System.Text;
-using System.Net;
-using System.Security.Cryptography.X509Certificates;
-using System.Net.Security;
 
 public class EventProcessor : MonoBehaviour {
 	public void QueueEvent(Action action) {
@@ -216,7 +212,7 @@ public class SendBirdUnity : MonoBehaviour {
 
 		SendBirdEventHandler seh = new SendBirdEventHandler ();
 		seh.OnConnect += (sender, e) => {
-			txtOpenChatTitle.text = "#" +  e.Channel.url;
+			txtOpenChatTitle.text = "#" +  e.Channel.GetUrlWithoutAppPrefix();
 			selectedChannelUrl = e.Channel.url;
 		};
 		seh.OnError += (sender, e) => {
