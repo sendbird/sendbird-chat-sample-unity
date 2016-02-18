@@ -1,0 +1,99 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &160074
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 4
+  m_Component:
+  - 4: {fileID: 460074}
+  - 114: {fileID: 11460074}
+  m_Layer: 0
+  m_Name: Space Dark
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &460074
+Transform:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 160074}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 557.5, y: 357, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+--- !u!114 &11460074
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 160074}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d43b88cbe6cc408bb81637b68702f92, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  chatFrameBG: {fileID: 21300000, guid: 3ba526100728540c3b664e865edf692c, type: 3}
+  channelListFrameBG: {fileID: 21300000, guid: e1ad04620d0924b85b99e4f1f40e5054, type: 3}
+  sendButton: {fileID: 21300000, guid: 2e12a2859667148c5b0d00759fe662f5, type: 3}
+  sendButtonColor:
+    serializedVersion: 2
+    rgba: 4294963900
+  inputTextBG: {fileID: 21300000, guid: 2c50df4132a31468d906d1731606a8d3, type: 3}
+  inputTextColor:
+    serializedVersion: 2
+    rgba: 4294963425
+  inputTextPlaceholderColor:
+    serializedVersion: 2
+    rgba: 4287920226
+  closeButton: {fileID: 21300000, guid: 749f830eb776646e39e54f0ee90277c0, type: 3}
+  chatChannelButtonOn: {fileID: 21300000, guid: b7e3bdc61509e4a1298e142ecbc680ad,
+    type: 3}
+  chatChannelButtonOnColor:
+    serializedVersion: 2
+    rgba: 4294966773
+  chatChannelButtonOff: {fileID: 21300000, guid: 53e371ebd2c2f482eb1c7c5ad1a9dfa1,
+    type: 3}
+  chatChannelButtonOffColor:
+    serializedVersion: 2
+    rgba: 4293234010
+  channelButtonOn: {fileID: 21300000, guid: e82f9f9dba80645adbd726e68f0c6b89, type: 3}
+  channelButtonOnColor:
+    serializedVersion: 2
+    rgba: 4294966773
+  channelButtonOff: {fileID: 21300000, guid: d9b411b4c0d804a87b7a331f9fd39f0e, type: 3}
+  channelButtonOffColor:
+    serializedVersion: 2
+    rgba: 4293234010
+  messageColor:
+    serializedVersion: 2
+    rgba: 4294963425
+  systemMessageColor:
+    serializedVersion: 2
+    rgba: 4286502207
+  senderColor:
+    serializedVersion: 2
+    rgba: 4293905470
+  titleColor:
+    serializedVersion: 2
+    rgba: 4294959739
+  scrollBarColor:
+    serializedVersion: 2
+    rgba: 4287854948
+--- !u!1001 &100100000
+Prefab:
+  m_ObjectHideFlags: 1
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications: []
+    m_RemovedComponents: []
+  m_ParentPrefab: {fileID: 0}
+  m_RootGameObject: {fileID: 160074}
+  m_IsPrefabParent: 1
