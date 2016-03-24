@@ -401,15 +401,6 @@ public class SendBirdUnity : MonoBehaviour {
 		currentUserName = inputUserName.text;
 		SendBirdSDK.Login (userId, currentUserName);
 
-		SendBirdNotificationHandler snh = new SendBirdNotificationHandler ();
-		snh.OnMessagingChannelUpdated += (sender, e) => {
-			if(mMessagingChannel != null && mMessagingChannel.GetId() == e.MessagingChannel.GetId()) {
-				mEventProcessor.QueueEvent(new Action (() => {
-					UpdateMessagingChannel(e.MessagingChannel);
-				}));
-			}
-		};
-
 		SendBirdEventHandler seh = new SendBirdEventHandler ();
 		seh.OnConnect += (sender, e) => {
 			selectedChannelUrl = e.Channel.url;
@@ -493,6 +484,13 @@ public class SendBirdUnity : MonoBehaviour {
 		};
 		seh.OnMessagingUpdated += (sender, e) => {
 			UpdateMessagingChannel(e.MessagingChannel);
+		};
+		seh.OnMessagingChannelUpdated += (sender, e) => {
+			if(mMessagingChannel != null && mMessagingChannel.GetId() == e.MessagingChannel.GetId()) {
+				mEventProcessor.QueueEvent(new Action (() => {
+					UpdateMessagingChannel(e.MessagingChannel);
+				}));
+			}
 		};
 
 		SendBirdSDK.SetEventHandler (seh);

@@ -206,23 +206,23 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 22467496, guid: 5e701019fd6d14ee4a2ef28d5ac3f1ef, type: 2}
       propertyPath: m_SizeDelta.y
-      value: 0
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 22439930, guid: 5e701019fd6d14ee4a2ef28d5ac3f1ef, type: 2}
       propertyPath: m_SizeDelta.y
-      value: 0
+      value: 32.7007294
       objectReference: {fileID: 0}
     - target: {fileID: 22454546, guid: 5e701019fd6d14ee4a2ef28d5ac3f1ef, type: 2}
       propertyPath: m_SizeDelta.y
-      value: 0
+      value: 32.7007294
       objectReference: {fileID: 0}
     - target: {fileID: 22439326, guid: 5e701019fd6d14ee4a2ef28d5ac3f1ef, type: 2}
       propertyPath: m_SizeDelta.y
-      value: 0
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 22416210, guid: 5e701019fd6d14ee4a2ef28d5ac3f1ef, type: 2}
       propertyPath: m_SizeDelta.y
-      value: 0
+      value: 10
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 5e701019fd6d14ee4a2ef28d5ac3f1ef, type: 2}
