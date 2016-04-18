@@ -17,7 +17,7 @@ public class EventProcessor : MonoBehaviour {
 		}
 	}
 
-	void Update() {
+	void FixedUpdate() {
 		MoveQueuedEventsToExecuting();
 
 		while (m_executingEvents.Count > 0) {
