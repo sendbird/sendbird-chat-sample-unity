@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using SendBird;
 using SendBird.Model;
 using SendBird.Query;
+using System.Threading;
 
 public class EventProcessor : MonoBehaviour {
 	public void QueueEvent(Action action) {
@@ -253,7 +254,9 @@ public class SendBirdUnity : MonoBehaviour {
 	}
 
 	void OpenChannelList (int limit = 30) {
-		channelPanel.SetActive (true);
+		mEventProcessor.QueueEvent(new Action (() => {
+			channelPanel.SetActive (true);
+		}));
 		mChannelListQuery = SendBirdSDK.QueryChannelList ();
 		mChannelListQuery.SetLimit(limit);
 		mChannelListQuery.OnResult += (sender, e) =>  {
@@ -267,12 +270,12 @@ public class SendBirdUnity : MonoBehaviour {
 	}
 
 	public void OnQueryChannelList (List<Channel> channels) {
-		foreach (UnityEngine.Object btnChannel in btnChannels) {
-			GameObject.Destroy(btnChannel);
-		}
-		btnChannels.Clear ();
-		
 		mEventProcessor.QueueEvent(new Action (() => {
+			foreach (UnityEngine.Object btnChannel in btnChannels) {
+				GameObject.Destroy(btnChannel);
+			}
+			btnChannels.Clear ();
+
 			foreach (Channel channel in channels) {
 				GameObject btnChannel = Instantiate (channelListItemPrefab) as GameObject;
 				btnChannel.GetComponent<Image>().sprite = uiTheme.channelButtonOff;
@@ -327,7 +330,9 @@ public class SendBirdUnity : MonoBehaviour {
 		currentUserName = inputUserName.text;
 		SendBirdSDK.Login (userId, currentUserName);
 
-		userListPanel.SetActive (true);
+		mEventProcessor.QueueEvent(new Action (() => {
+			userListPanel.SetActive (true);
+		}));
 		mUserListQuery = SendBirdSDK.QueryUserList ();
 		mUserListQuery.OnResult += (sender, e) =>  {
 			if(e.Exception != null) {
@@ -512,7 +517,9 @@ public class SendBirdUnity : MonoBehaviour {
 		currentUserName = inputUserName.text;
 		SendBirdSDK.Login (userId, currentUserName);
 
-		messagingChannelListPanel.SetActive (true);
+		mEventProcessor.QueueEvent(new Action (() => {
+			messagingChannelListPanel.SetActive (true);
+		}));
 		mMessagingChannelListQuery = SendBirdSDK.QueryMessagingList ();
 		mMessagingChannelListQuery.OnResult += (sender, e) =>  {
 			if(e.Exception != null) {
@@ -582,7 +589,6 @@ public class SendBirdUnity : MonoBehaviour {
 	}
 
 	void InitComponents () {
-		Debug.Log ("InitComponents");
 		uiPanel = GameObject.Find ("SendBirdUnity/UIPanel");
 		(Instantiate (uiThemePrefab) as GameObject).transform.parent = uiPanel.transform;
 
