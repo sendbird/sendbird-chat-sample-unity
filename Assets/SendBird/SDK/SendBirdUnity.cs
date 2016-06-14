@@ -185,14 +185,22 @@ public class SendBirdUnity : MonoBehaviour {
 		}
 	}
 
+	void OnApplicationQuit() {
+		Disconnect ();
+	}
+
 	void Start() {
-		string appId = "A7A2672C-AD11-11E4-8DAA-0A18B21C2D82"; // Release
+		string appId = "A7A2672C-AD11-11E4-8DAA-0A18B21C2D82"; // SendBird Sample Application ID
 		userId = SystemInfo.deviceUniqueIdentifier;
 		SendBirdSDK.Init (appId);
 
 		InitComponents ();
 		mGameObject = gameObject;
 		mEventProcessor = mGameObject.AddComponent<EventProcessor> ();
+
+		SendBirdSDK.unityDebugLog += (sender, e) => {
+			Debug.Log (e.Message);
+		};
 	}
 
 	void Disconnect () {
@@ -426,7 +434,6 @@ public class SendBirdUnity : MonoBehaviour {
 				txtMessagingContent.text = txtMessagingContent.text + (MessageRichText(message) + "\n");
 				ScrollToBottom();
 			}));
-			// markasread
 		};
 		seh.OnBroadcastMessageReceived += (sender, e) => {
 			mEventProcessor.QueueEvent(new Action (() => {
@@ -454,7 +461,7 @@ public class SendBirdUnity : MonoBehaviour {
 			UpdateMessagingChannel(e.MessagingChannel);
 
 			var messagingChannelUrl = e.MessagingChannel.GetUrl();
-			// message query
+
 			MessageListQuery messageListQuery = SendBirdSDK.QueryMessageList(messagingChannelUrl);
 			messageListQuery.OnResult += (sender_child, e_child) => {
 				mEventProcessor.QueueEvent(new Action (() => {
