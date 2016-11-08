@@ -1,19 +1,23 @@
-# [SendBird](https://sendbird.com) Unity Sample UI
+SendBird Unity Sample UI
+===========
 
-## Introduction
+### Creating a SendBird Application
 
-[SendBird](https://sendbird.com) provides the chat API and SDK for your app enabling real-time communication
-among your users. SendBird Sample UI has three features for the chat and messaging.
+The first thing you need to do is to sign up in **[SendBird Dashboard](https://dashboard.sendbird.com)** and create a SendBird application.
+You should use one application per one service across various platforms.
+Users in different applications can't talk to each other.
 
-1. **Open chat**: Open chat is a public chat. There is a channel which can be participated by anyone without an admission. The channel can be created on `SendBird` dashboard or via `server API`.
+### Open the project from Unity 
 
-2. **1-on-1 messaging**: 1-on-1 messaging is a private channel between two users. Basically it is same as group messaging channel with only two members.
+You can open the sample project from Unity.
 
-3. **Group messaging**: Group messaging is a private channel between multiple users. The user who wants to join the Group messaging channel has to be invited by other user who is already joined the Group messaging channel.
+This project is tested on `Unity 5.3.0f4` or avobe.
 
+Build and run the Sample UI project to play with Open Chat or Group Chat.
 
-## Quick Start
+- The sample project is shipped with **Testing App ID**.
+- You must replace with your own **App ID** found in **SendBird Dashboard** for a production app.
 
-1. Download Sample UI project from this repository.
-2. Open the project which you want to run.
+### Access to Version 2
 
+You can check out `v2` branch instead of `master` branch to download version 2 samples.
