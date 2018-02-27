@@ -171,6 +171,29 @@ public class SendBirdUI : MonoBehaviour
 		autoScroll = true;
 	}
 
+	void LoadOpenChannelChatHistory()
+	{
+		PreviousMessageListQuery query = currentChannel.CreatePreviousMessageListQuery ();
+
+		query.Load (15, false, (List< BaseMessage > queryResult, SendBirdException e) => {
+			if (e != null) {
+				Debug.Log (e.Code + ": " + e.Message);
+				return;
+			}
+
+			foreach(BaseMessage message in queryResult) {
+				if (message is UserMessage) {
+					txtOpenChannelContent.text = txtOpenChannelContent.text + (UserMessageRichText ((UserMessage)message) + "\n");
+				} else if (message is FileMessage) {
+					txtOpenChannelContent.text = txtOpenChannelContent.text + (FileMessageRichText ((FileMessage)message) + "\n");
+				} else if (message is AdminMessage) {
+					txtOpenChannelContent.text = txtOpenChannelContent.text + (AdminMessageRichText ((AdminMessage)message) + "\n");
+				}
+			}
+		});
+
+	}
+
 	void OpenOpenChannelList ()
 	{
 		openChannelListPanel.SetActive (true);
@@ -225,6 +248,7 @@ public class SendBirdUI : MonoBehaviour
 
 						currentChannel = final;
 						ResetOpenChannelContent();
+						LoadOpenChannelChatHistory();
 						txtOpenChannelTitle.text = "#" + final.Name;
 
 						enteredChannels [final.Url] = final;
@@ -299,6 +323,29 @@ public class SendBirdUI : MonoBehaviour
 		autoScroll = true;
 	}
 
+	void LoadGroupChannelPreviousChatHistory ()
+	{
+		PreviousMessageListQuery query = currentChannel.CreatePreviousMessageListQuery ();
+
+		query.Load (15, false, (List< BaseMessage > queryResult, SendBirdException e) => {
+			if (e != null) {
+				Debug.Log (e.Code + ": " + e.Message);
+				return;
+			}
+
+			foreach(BaseMessage message in queryResult) {
+				if (message is UserMessage) {
+					txtGroupChannelContent.text = txtGroupChannelContent.text + (UserMessageRichText ((UserMessage)message) + "\n");
+				} else if (message is FileMessage) {
+					txtGroupChannelContent.text = txtGroupChannelContent.text + (FileMessageRichText ((FileMessage)message) + "\n");
+				} else if (message is AdminMessage) {
+					txtGroupChannelContent.text = txtGroupChannelContent.text + (AdminMessageRichText ((AdminMessage)message) + "\n");
+				}
+			}
+		});
+
+	}
+
 	void OpenGroupChannelList ()
 	{
 		foreach (UnityEngine.Object btnGroupChannel in btnGroupChannels) {
@@ -348,8 +395,9 @@ public class SendBirdUI : MonoBehaviour
 
 
 					currentChannel = final;
-					ResetGroupChannelContent();
 					txtGroupChannelTitle.text = GetDisplayMemberNames(final.Members);
+					ResetGroupChannelContent();
+					LoadGroupChannelPreviousChatHistory();
 				});
 			}
 
@@ -376,7 +424,7 @@ public class SendBirdUI : MonoBehaviour
 		btnConnect.GetComponent<Image> ().type = Image.Type.Sliced;
 		btnConnect.onClick.AddListener (() => {
 			nickname = inputUserName.text;
-			userId = nickname; // Assign user's unique id.
+			userId = nickname; // Please assign user's unique id.
 
 			if (nickname == null || nickname.Length <= 0) {
 				return;
