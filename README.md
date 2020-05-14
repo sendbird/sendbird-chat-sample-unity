@@ -11,7 +11,7 @@ Users in different applications can't talk to each other.
 
 You can open the sample project from Unity.
 
-This project is tested on `Unity 5.3.0f4`.
+This project is tested on `Unity 2017.4.0f1`.
 
 Build and run the Sample UI project to play with Open Chat or Group Chat.
 

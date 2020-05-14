@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 using SendBird;
+using SendBird.SBJson;
 
 public class SendBirdUI : MonoBehaviour
 {
@@ -21,8 +22,8 @@ public class SendBirdUI : MonoBehaviour
 
 	#region Menu
 
-	Dictionary<string, OpenChannel> enteredChannels = new Dictionary<string, OpenChannel> ();
-
+	Dictionary<string, OpenChannel> enteredChannels = new Dictionary<string, OpenChannel>();
+	public static string API_TOKEN = null;
 
 	GameObject menuPanel;
 	Button btnConnect;
@@ -30,6 +31,13 @@ public class SendBirdUI : MonoBehaviour
 	Button btnStartGroupChannel;
 	Button btnGroupChannelList;
 	InputField inputUserName;
+
+	public GameObject messageListItemPrefab;
+	List<UnityEngine.Object> btnMessage = new List<UnityEngine.Object>();
+	[HideInInspector]
+	public long messageId;
+	[HideInInspector]
+	public string editMessage;
 
 	#endregion
 
@@ -41,7 +49,8 @@ public class SendBirdUI : MonoBehaviour
 	enum TAB_MODE
 	{
 		CHANNEL,
-		CLAN}
+		CLAN
+	}
 
 	;
 
@@ -57,14 +66,12 @@ public class SendBirdUI : MonoBehaviour
 	Button btnOpenChannelSend;
 	Button btnOpenChannelClose;
 
-	string currentChannelUrl;
-
 	#endregion
 
 	#region OpenChannelList
 
 	public GameObject channelListItemPrefab;
-	ArrayList btnChannels = new ArrayList ();
+	ArrayList btnChannels = new ArrayList();
 
 	GameObject openChannelListPanel;
 	Button btnOpenChannelListClose;
@@ -81,6 +88,15 @@ public class SendBirdUI : MonoBehaviour
 	InputField inputGroupChannel;
 	Button btnGroupChannelSend;
 	Button btnGroupChannelClose;
+	Button btnGroupChannelLeave;
+	GameObject groupScrollArea;
+
+	//sskim
+	Text txtGroupChannelContent2;
+	GameObject editableScrollArea;
+	GameObject editableGridPannel;
+	Scrollbar groupChannelScrollbar2;
+	GameObject editPopup;
 
 	#endregion
 
@@ -88,11 +104,11 @@ public class SendBirdUI : MonoBehaviour
 
 	GameObject userListPanel;
 
-	private List<string> mUserList = new List<string> ();
+	private List<string> mUserList = new List<string>();
 	private UserListQuery mUserListQuery;
 
 	public GameObject userListItemPrefab;
-	List<UnityEngine.Object> btnUsers = new List<UnityEngine.Object> ();
+	List<UnityEngine.Object> btnUsers = new List<UnityEngine.Object>();
 
 	Button btnUserListClose;
 	Button btnInvite;
@@ -104,7 +120,7 @@ public class SendBirdUI : MonoBehaviour
 
 	private GroupChannelListQuery mGroupChannelListQuery;
 
-	ArrayList btnGroupChannels = new ArrayList ();
+	ArrayList btnGroupChannels = new ArrayList();
 
 	GameObject groupChannelListPanel;
 	Button btnGroupChannelListClose;
@@ -123,47 +139,120 @@ public class SendBirdUI : MonoBehaviour
 
 	#endregion
 
-	void FixedUpdate ()
+	void FixedUpdate()
 	{
-		if (autoScroll) {
-			ScrollToBottom ();
+		if (autoScroll)
+		{
+			ScrollToBottom();
 		}
 	}
 
-	void Start ()
+	void Start()
 	{
-		InitComponents ();
+		InitComponents();
 
-		SendBirdClient.ChannelHandler channelHandler = new SendBirdClient.ChannelHandler ();
+		SendBirdClient.ChannelHandler channelHandler = new SendBirdClient.ChannelHandler();
 		channelHandler.OnMessageReceived = (BaseChannel channel, BaseMessage message) => {
+
 			// Draw new messages if user is on the channel.
-			if(currentChannel.Url == channel.Url)
+			if (currentChannel.Url == channel.Url)
 			{
-				if (message is UserMessage) {
-					if(channel.IsOpenChannel())
-						txtOpenChannelContent.text = txtOpenChannelContent.text + (UserMessageRichText ((UserMessage)message) + "\n");
+				if (message is UserMessage)
+				{
+					if (channel.IsOpenChannel())
+						txtOpenChannelContent.text = txtOpenChannelContent.text + (UserMessageRichText((UserMessage)message) + "\n");
 					else
-						txtGroupChannelContent.text = txtGroupChannelContent.text + (UserMessageRichText ((UserMessage)message) + "\n");
-				} else if (message is FileMessage) {
-					if(channel.IsOpenChannel())
-						txtOpenChannelContent.text = txtOpenChannelContent.text + (FileMessageRichText ((FileMessage)message) + "\n");
+					{
+						GameObject objMessage = Instantiate(messageListItemPrefab, editableGridPannel.transform) as GameObject;
+
+						ChannelMessage msg = objMessage.GetComponent<ChannelMessage>();
+						if (SendBirdClient.CurrentUser.UserId != msg.userId) objMessage.GetComponent<Button>().enabled = false;
+						msg.message = (UserMessageRichText((UserMessage)message));
+						msg.messageId = message.MessageId;
+						msg.messageText.text = (UserMessageRichText((UserMessage)message));
+
+						btnMessage.Add(objMessage);
+					}
+				}
+				else if (message is FileMessage)
+				{
+					if (channel.IsOpenChannel())
+						txtOpenChannelContent.text = txtOpenChannelContent.text + (FileMessageRichText((FileMessage)message) + "\n");
 					else
-						txtGroupChannelContent.text = txtGroupChannelContent.text + (FileMessageRichText ((FileMessage)message) + "\n");
-				} else if (message is AdminMessage) {
-					if(channel.IsOpenChannel())
-						txtOpenChannelContent.text = txtOpenChannelContent.text + (AdminMessageRichText ((AdminMessage)message) + "\n");
-					else
-						txtGroupChannelContent.text = txtGroupChannelContent.text + (AdminMessageRichText ((AdminMessage)message) + "\n");
+						txtGroupChannelContent.text = txtGroupChannelContent.text + (FileMessageRichText((FileMessage)message) + "\n");
+				}
+				else if (message is AdminMessage)
+				{
+					GameObject objMessage = Instantiate(messageListItemPrefab, editableGridPannel.transform) as GameObject;
+
+					ChannelMessage msg = objMessage.GetComponent<ChannelMessage>();
+					if (SendBirdClient.CurrentUser.UserId != msg.userId) objMessage.GetComponent<Button>().enabled = false;
+					msg.message = (AdminMessageRichText((AdminMessage)message));
+					msg.messageId = message.MessageId;
+					msg.messageText.text = (AdminMessageRichText((AdminMessage)message));
+
+					btnMessage.Add(objMessage);
 				}
 
-				ScrollToBottom ();
+				ScrollToBottom();
+			}
+
+		};
+
+		channelHandler.OnUserReceivedInvitation = (GroupChannel channel, User inviter, List<User> invitees) =>
+		{
+			for (int i = 0; i < invitees.Count; i++)
+			{
+				if (invitees[i].UserId == SendBirdClient.CurrentUser.UserId)
+				{
+					// to do
+				}
 			}
 		};
 
-		SendBirdClient.AddChannelHandler ("default", channelHandler);
+		channelHandler.OnMessageUpdated = (BaseChannel channel, BaseMessage message) =>
+		{
+			if (currentChannel.Url == channel.Url)
+			{
+				if (channel.IsGroupChannel())
+				{
+					for (int i = 0; i < btnMessage.Count; i++)
+					{
+						GameObject objMessage = btnMessage[i] as GameObject;
+						ChannelMessage msg = objMessage.GetComponent<ChannelMessage>();
+						if (message is UserMessage)
+						{
+							if (msg.messageId == message.MessageId)
+							{
+								if (SendBirdClient.CurrentUser.UserId != msg.userId) objMessage.GetComponent<Button>().enabled = false;
+								msg.message = ((UserMessage)message).Message;
+								msg.messageId = message.MessageId;
+								msg.messageText.text = (UserMessageRichText((UserMessage)message));
+							}
+						}
+						else if (message is AdminMessage)
+						{
+							if (msg.messageId == message.MessageId)
+							{
+								objMessage.GetComponent<Button>().enabled = false;
+								msg.message = ((AdminMessage)message).Message;
+								msg.messageId = message.MessageId;
+								msg.messageText.text = (AdminMessageRichText((AdminMessage)message));
+							}
+						}
+					}
+				}
+				else
+				{
+					LoadOpenChannelChatHistory();
+				}
+			}
+		};
+
+		SendBirdClient.AddChannelHandler("default", channelHandler);
 	}
 
-	void ResetOpenChannelContent ()
+	void ResetOpenChannelContent()
 	{
 		txtOpenChannelContent.text = "";
 		inputOpenChannel.text = "";
@@ -173,87 +262,102 @@ public class SendBirdUI : MonoBehaviour
 
 	void LoadOpenChannelChatHistory()
 	{
-		PreviousMessageListQuery query = currentChannel.CreatePreviousMessageListQuery ();
+		PreviousMessageListQuery query = currentChannel.CreatePreviousMessageListQuery();
 
-		query.Load (15, false, (List< BaseMessage > queryResult, SendBirdException e) => {
-			if (e != null) {
-				Debug.Log (e.Code + ": " + e.Message);
+		ResetOpenChannelContent();
+		query.Load(15, false, (List<BaseMessage> queryResult, SendBirdException e) => {
+			if (e != null)
+			{
+				Debug.Log(e.Code + ": " + e.Message);
 				return;
 			}
 
-			foreach(BaseMessage message in queryResult) {
-				if (message is UserMessage) {
-					txtOpenChannelContent.text = txtOpenChannelContent.text + (UserMessageRichText ((UserMessage)message) + "\n");
-				} else if (message is FileMessage) {
-					txtOpenChannelContent.text = txtOpenChannelContent.text + (FileMessageRichText ((FileMessage)message) + "\n");
-				} else if (message is AdminMessage) {
-					txtOpenChannelContent.text = txtOpenChannelContent.text + (AdminMessageRichText ((AdminMessage)message) + "\n");
+			foreach (BaseMessage message in queryResult)
+			{
+				if (message is UserMessage)
+				{
+					txtOpenChannelContent.text = txtOpenChannelContent.text + (UserMessageRichText((UserMessage)message) + "\n");
+				}
+				else if (message is FileMessage)
+				{
+					txtOpenChannelContent.text = txtOpenChannelContent.text + (FileMessageRichText((FileMessage)message) + "\n");
+				}
+				else if (message is AdminMessage)
+				{
+					txtOpenChannelContent.text = txtOpenChannelContent.text + (AdminMessageRichText((AdminMessage)message) + "\n");
 				}
 			}
 		});
 
 	}
 
-	void OpenOpenChannelList ()
+	void OpenOpenChannelList()
 	{
-		openChannelListPanel.SetActive (true);
+		openChannelListPanel.SetActive(true);
 
-		foreach (UnityEngine.Object btnChannel in btnChannels) {
-			GameObject.Destroy (btnChannel);
+		foreach (UnityEngine.Object btnChannel in btnChannels)
+		{
+			GameObject.Destroy(btnChannel);
 		}
-		btnChannels.Clear ();
+		btnChannels.Clear();
 
 
-		mChannelListQuery = OpenChannel.CreateOpenChannelListQuery ();
+		mChannelListQuery = OpenChannel.CreateOpenChannelListQuery();
 		mChannelListQuery.Limit = 50;
-		LoadOpenChannels ();
+		LoadOpenChannels();
 	}
 
 	void LoadOpenChannels()
 	{
-		mChannelListQuery.Next ((list, e) => {
-			if (e != null) {
-				Debug.Log (e.Code + ": " + e.Message);
+		mChannelListQuery.Next((list, e) => {
+			if (e != null)
+			{
+				Debug.Log(e.Code + ": " + e.Message);
 				return;
-			}	
+			}
 
-			foreach (OpenChannel channel in list) {
-				GameObject btnChannel = Instantiate (channelListItemPrefab) as GameObject;
-				btnChannel.GetComponent<Image> ().sprite = uiTheme.channelButtonOff;
+			foreach (OpenChannel channel in list)
+			{
+				GameObject btnChannel = Instantiate(channelListItemPrefab) as GameObject;
+				btnChannel.GetComponent<Image>().sprite = uiTheme.channelButtonOff;
 
-				if (channel.Url == selectedChannelUrl) {
-					btnChannel.GetComponent<Image> ().overrideSprite = uiTheme.channelButtonOn;
-					btnChannel.GetComponentInChildren<Text> ().color = uiTheme.channelButtonOnColor;
-				} else {
-					btnChannel.GetComponent<Image> ().overrideSprite = null;
-					btnChannel.GetComponentInChildren<Text> ().color = uiTheme.channelButtonOffColor;
+				if (channel.Url == selectedChannelUrl)
+				{
+					btnChannel.GetComponent<Image>().overrideSprite = uiTheme.channelButtonOn;
+					btnChannel.GetComponentInChildren<Text>().color = uiTheme.channelButtonOnColor;
 				}
-				Text text = btnChannel.GetComponentInChildren<Text> ();
+				else
+				{
+					btnChannel.GetComponent<Image>().overrideSprite = null;
+					btnChannel.GetComponentInChildren<Text>().color = uiTheme.channelButtonOffColor;
+				}
+				Text text = btnChannel.GetComponentInChildren<Text>();
 				text.text = "#" + channel.Name;
-				btnChannel.transform.SetParent (channelGridPannel.transform);
+				btnChannel.transform.SetParent(channelGridPannel.transform);
 				btnChannel.transform.localScale = Vector3.one;
-				btnChannels.Add (btnChannel);
+				btnChannels.Add(btnChannel);
 
 				OpenChannel final = channel;
-				btnChannel.GetComponent<Button> ().onClick.AddListener (() => {
-					foreach (KeyValuePair<string, OpenChannel> entry in enteredChannels) {
-						entry.Value.Exit (null);
+				btnChannel.GetComponent<Button>().onClick.AddListener(() => {
+					foreach (KeyValuePair<string, OpenChannel> entry in enteredChannels)
+					{
+						entry.Value.Exit(null);
 					}
 
-					final.Enter ((e1) => {
-						if (e1 != null) {
-							Debug.Log (e1.Code + ": " + e1.Message);
+					final.Enter((e1) => {
+						if (e1 != null)
+						{
+							Debug.Log(e1.Code + ": " + e1.Message);
 							return;
 						}
 
 						currentChannel = final;
-						ResetOpenChannelContent();
 						LoadOpenChannelChatHistory();
 						txtOpenChannelTitle.text = "#" + final.Name;
 
-						enteredChannels [final.Url] = final;
+						enteredChannels[final.Url] = final;
 
-						openChannelListPanel.SetActive (false);
+						openChannelListPanel.SetActive(false);
 						openChannelPanel.SetActive(true);
 					});
 				});
@@ -261,53 +365,59 @@ public class SendBirdUI : MonoBehaviour
 		});
 	}
 
-
-	void OpenUserList ()
+	void OpenUserList()
 	{
-		foreach (UnityEngine.Object btnUser in btnUsers) {
-			GameObject.Destroy (btnUser);
+		foreach (UnityEngine.Object btnUser in btnUsers)
+		{
+			GameObject.Destroy(btnUser);
 		}
-		btnUsers.Clear ();
+		btnUsers.Clear();
 
-		userListPanel.SetActive (true);
-		mUserListQuery = SendBirdClient.CreateUserListQuery ();
+		userListPanel.SetActive(true);
+		mUserListQuery = SendBirdClient.CreateUserListQuery();
 		mUserListQuery.Limit = 50;
 
-		LoadUsers ();
+		LoadUsers();
 	}
 
-	public void LoadUsers ()
+	public void LoadUsers()
 	{
-		mUserListQuery.Next ((list, e) => {
-			if (e != null) {
-				Debug.Log (e.Code + ": " + e.Message);
+		mUserListQuery.Next((list, e) => {
+			if (e != null)
+			{
+				Debug.Log(e.Code + ": " + e.Message);
 				return;
 			}
 
-			foreach (User user in list) {
-				GameObject userItem = Instantiate (userListItemPrefab) as GameObject;
-				userItem.GetComponent<Image> ().sprite = uiTheme.channelButtonOff;
+			mUserList.Clear();
+			foreach (User user in list)
+			{
+				GameObject userItem = Instantiate(userListItemPrefab) as GameObject;
+				userItem.GetComponent<Image>().sprite = uiTheme.channelButtonOff;
 
-				Text text = userItem.GetComponentInChildren<Text> ();
+				Text text = userItem.GetComponentInChildren<Text>();
 				text.color = uiTheme.chatChannelButtonOffColor;
 				text.text = user.Nickname;
 
-				userItem.transform.SetParent (userListGridPanel.transform, false);
+				userItem.transform.SetParent(userListGridPanel.transform, false);
 				userItem.transform.localScale = Vector3.one;
-				btnUsers.Add (userItem);
+				btnUsers.Add(userItem);
 
-				var userItemToggle = userItem.GetComponent<Toggle> ();
+				var userItemToggle = userItem.GetComponent<Toggle>();
 
 				User finalUser = user;
-				userItemToggle.onValueChanged.AddListener ((isOn) => {
-					if (isOn) {
-						userItem.GetComponent<Image> ().overrideSprite = uiTheme.chatChannelButtonOn;
-						userItem.GetComponentInChildren<Text> ().color = uiTheme.chatChannelButtonOnColor;
-						mUserList.Add (finalUser.UserId);
-					} else {
-						userItem.GetComponent<Image> ().overrideSprite = uiTheme.chatChannelButtonOff;
-						userItem.GetComponentInChildren<Text> ().color = uiTheme.chatChannelButtonOffColor;
-						mUserList.Remove (finalUser.UserId);
+				userItemToggle.onValueChanged.AddListener((isOn) => {
+					if (isOn)
+					{
+						userItem.GetComponent<Image>().overrideSprite = uiTheme.chatChannelButtonOn;
+						userItem.GetComponentInChildren<Text>().color = uiTheme.chatChannelButtonOnColor;
+						mUserList.Add(finalUser.UserId);
+					}
+					else
+					{
+						userItem.GetComponent<Image>().overrideSprite = uiTheme.chatChannelButtonOff;
+						userItem.GetComponentInChildren<Text>().color = uiTheme.chatChannelButtonOffColor;
+						mUserList.Remove(finalUser.UserId);
 					}
 				});
 			}
@@ -315,372 +425,561 @@ public class SendBirdUI : MonoBehaviour
 		});
 	}
 
-	void ResetGroupChannelContent ()
+	void ResetGroupChannelContent()
 	{
+		foreach (UnityEngine.Object obj in btnMessage)
+		{
+			GameObject.Destroy(obj);
+		}
+		btnMessage.Clear();
+
 		txtGroupChannelContent.text = "";
 		inputGroupChannel.text = "";
 		lastTextPositionY = 0;
 		autoScroll = true;
 	}
 
-	void LoadGroupChannelPreviousChatHistory ()
+	void LoadGroupChannelPreviousChatHistory()
 	{
-		PreviousMessageListQuery query = currentChannel.CreatePreviousMessageListQuery ();
+		PreviousMessageListQuery query = currentChannel.CreatePreviousMessageListQuery();
+		ResetGroupChannelContent();
+		query.Load(15, false, (List<BaseMessage> queryResult, SendBirdException e) => {
+		if (e != null)
+		{
+			Debug.Log(e.Code + ": " + e.Message);
+			return;
+		}
 
-		query.Load (15, false, (List< BaseMessage > queryResult, SendBirdException e) => {
-			if (e != null) {
-				Debug.Log (e.Code + ": " + e.Message);
-				return;
-			}
+			ChannelMessage msg = null;
 
-			foreach(BaseMessage message in queryResult) {
-				if (message is UserMessage) {
-					txtGroupChannelContent.text = txtGroupChannelContent.text + (UserMessageRichText ((UserMessage)message) + "\n");
-				} else if (message is FileMessage) {
-					txtGroupChannelContent.text = txtGroupChannelContent.text + (FileMessageRichText ((FileMessage)message) + "\n");
-				} else if (message is AdminMessage) {
-					txtGroupChannelContent.text = txtGroupChannelContent.text + (AdminMessageRichText ((AdminMessage)message) + "\n");
+			foreach (BaseMessage message in queryResult)
+			{
+				GameObject objMessage = Instantiate(messageListItemPrefab, editableGridPannel.transform) as GameObject;
+				msg = objMessage.GetComponent<ChannelMessage>();
+
+				if (message is UserMessage)
+				{
+					msg.message = ((UserMessage)message).Message;
+					msg.userId = message.UserId;
+					msg.messageId = message.MessageId;
+					msg.messageText.text = (UserMessageRichText((UserMessage)message));
+					if (SendBirdClient.CurrentUser.UserId == msg.userId) objMessage.GetComponent<Button>().enabled = true;
+
+					btnMessage.Add(objMessage);
 				}
+				else if (message is FileMessage)
+				{
+					msg.message = ((FileMessage)message).Name;
+					msg.messageId = message.MessageId;
+					msg.messageText.text = (FileMessageRichText((FileMessage)message));
+					if (SendBirdClient.CurrentUser.UserId == msg.userId) objMessage.GetComponent<Button>().enabled = true;
+
+					btnMessage.Add(objMessage);
+				}
+				else if (message is AdminMessage)
+				{
+					msg.message = ((AdminMessage)message).Message;
+					msg.messageId = message.MessageId;
+					msg.messageText.text = (AdminMessageRichText((AdminMessage)message));
+					if (SendBirdClient.CurrentUser.UserId == msg.userId) objMessage.GetComponent<Button>().enabled = true;
+
+					btnMessage.Add(objMessage);
+				}
+
+				objMessage.GetComponent<Button>().onClick.AddListener(() =>
+				{
+					msg = objMessage.GetComponent<ChannelMessage>();
+					UpdateMessage(msg);
+				});
 			}
 		});
 
 	}
 
-	void OpenGroupChannelList ()
+	void UpdateMessage(ChannelMessage msg)
 	{
-		foreach (UnityEngine.Object btnGroupChannel in btnGroupChannels) {
-			GameObject.Destroy (btnGroupChannel);
+		messageId = msg.messageId;
+		editMessage = msg.message;
+		editPopup.SetActive(true);
+		
+	}
+
+	public void UpdateMessageSend(string sMessage)
+	{
+		if (currentChannel != null && currentChannel.IsGroupChannel())
+		{
+			currentChannel.UpdateUserMessage(messageId, sMessage, null, null, (message, e) =>
+			{
+				if (e != null)
+				{
+					Debug.Log(e.Code + ": " + e.Message);
+					return;
+				}
+				ScrollToBottom();
+			});
 		}
-		btnGroupChannels.Clear ();
+	}
 
-		groupChannelListPanel.SetActive (true);
+	void OpenGroupChannelList()
+	{
+		foreach (UnityEngine.Object btnGroupChannel in btnGroupChannels)
+		{
+			GameObject.Destroy(btnGroupChannel);
+		}
+		btnGroupChannels.Clear();
 
-		mGroupChannelListQuery = GroupChannel.CreateMyGroupChannelListQuery ();
+		groupChannelListPanel.SetActive(true);
+
+		mGroupChannelListQuery = GroupChannel.CreateMyGroupChannelListQuery();
+		if (mGroupChannelListQuery == null) return;
+		mGroupChannelListQuery.IncludeEmpty = true;
 		mGroupChannelListQuery.Limit = 50;
-		LoadGroupChannels ();
+		LoadGroupChannels();
 	}
 
 	void LoadGroupChannels()
 	{
-		mGroupChannelListQuery.Next ((list, e) => {
-			if (e != null) {
-				Debug.Log (e.Code + ": " + e.Message);
+		mGroupChannelListQuery.Next((list, e) => {
+			if (e != null)
+			{
+				Debug.Log(e.Code + ": " + e.Message);
 				return;
 			}
 
-			foreach (GroupChannel groupChannel in list) {
-				GameObject btnGroupChannel = Instantiate (channelListItemPrefab) as GameObject;
-				btnGroupChannel.GetComponent<Image> ().sprite = uiTheme.channelButtonOff;
-				btnGroupChannel.GetComponent<Image> ().type = Image.Type.Sliced;
+			foreach (GroupChannel groupChannel in list)
+			{
+				GameObject btnGroupChannel = Instantiate(channelListItemPrefab) as GameObject;
+				btnGroupChannel.GetComponent<Image>().sprite = uiTheme.channelButtonOff;
+				btnGroupChannel.GetComponent<Image>().type = Image.Type.Sliced;
 
-				if (groupChannel.Url == selectedChannelUrl) {
-					btnGroupChannel.GetComponent<Image> ().overrideSprite = uiTheme.channelButtonOn;
-					btnGroupChannel.GetComponentInChildren<Text> ().color = uiTheme.channelButtonOnColor;
-				} else {
-					btnGroupChannel.GetComponent<Image> ().overrideSprite = null;
-					btnGroupChannel.GetComponentInChildren<Text> ().color = uiTheme.channelButtonOffColor;
+				if (groupChannel.Url == selectedChannelUrl)
+				{
+					btnGroupChannel.GetComponent<Image>().overrideSprite = uiTheme.channelButtonOn;
+					btnGroupChannel.GetComponentInChildren<Text>().color = uiTheme.channelButtonOnColor;
+				}
+				else
+				{
+					btnGroupChannel.GetComponent<Image>().overrideSprite = null;
+					btnGroupChannel.GetComponentInChildren<Text>().color = uiTheme.channelButtonOffColor;
 				}
 
-				Text text = btnGroupChannel.GetComponentInChildren<Text> ();
-				text.text = string.Format ("{0} ({1})", GetDisplayMemberNames (groupChannel.Members), groupChannel.UnreadMessageCount);
-
-				btnGroupChannel.transform.SetParent (groupChannelListGridPanel.transform);
+				btnGroupChannel.transform.SetParent(groupChannelListGridPanel.transform);
 				btnGroupChannel.transform.localScale = Vector3.one;
-				btnGroupChannels.Add (btnGroupChannel);
+
+				Text text = btnGroupChannel.GetComponentInChildren<Text>();
+				text.text = string.Format("{0}:{1} ({2})", groupChannel.Name, GetDisplayMemberNames(groupChannel.Members), groupChannel.UnreadMessageCount);
+
+
+				btnGroupChannels.Add(btnGroupChannel);
 
 				GroupChannel final = groupChannel;
-				btnGroupChannel.GetComponent<Button> ().onClick.AddListener (() => {
-					groupChannelListPanel.SetActive (false);
-					groupChannelPanel.SetActive (true);
+				btnGroupChannel.GetComponent<Button>().onClick.AddListener(() => {
 
+					groupChannelListPanel.SetActive(false);
+					groupChannelPanel.SetActive(true);
 
 					currentChannel = final;
-					txtGroupChannelTitle.text = GetDisplayMemberNames(final.Members);
-					ResetGroupChannelContent();
+
+					editableScrollArea.SetActive(true);
+					groupScrollArea.SetActive(false);
+
 					LoadGroupChannelPreviousChatHistory();
+
 				});
 			}
 
 		});
 	}
 
-	void InitComponents ()
+	void InitComponents()
 	{
-		uiPanel = GameObject.Find ("SendBirdUnity/UIPanel");
-		(Instantiate (uiThemePrefab) as GameObject).transform.parent = uiPanel.transform;
+		uiPanel = GameObject.Find("SendBirdUnity/UIPanel");
+		(Instantiate(uiThemePrefab) as GameObject).transform.parent = uiPanel.transform;
 
-		uiTheme = GameObject.FindObjectOfType (typeof(SendBirdTheme)) as SendBirdTheme;
+		editPopup = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/EditPopup");
+		editPopup.gameObject.SetActive(false);
+
+		uiTheme = GameObject.FindObjectOfType(typeof(SendBirdTheme)) as SendBirdTheme;
 
 		#region MenuPanel
 
-		menuPanel = GameObject.Find ("SendBirdUnity/UIPanel/MenuPanel");
-		menuPanel.GetComponent<Image> ().sprite = uiTheme.channelListFrameBG;
+		menuPanel = GameObject.Find("SendBirdUnity/UIPanel/MenuPanel");
+		menuPanel.GetComponent<Image>().sprite = uiTheme.channelListFrameBG;
 
-		var txtMenuTitle = GameObject.Find ("SendBirdUnity/UIPanel/MenuPanel/TxtTitle").GetComponent<Text> ();
+		var txtMenuTitle = GameObject.Find("SendBirdUnity/UIPanel/MenuPanel/TxtTitle").GetComponent<Text>();
 		txtMenuTitle.color = uiTheme.titleColor;
 
-		btnConnect = GameObject.Find ("SendBirdUnity/UIPanel/MenuPanel/BtnConnect").GetComponent<Button> ();
-		btnConnect.GetComponent<Image> ().sprite = uiTheme.sendButton;
-		btnConnect.GetComponent<Image> ().type = Image.Type.Sliced;
-		btnConnect.onClick.AddListener (() => {
+		btnConnect = GameObject.Find("SendBirdUnity/UIPanel/MenuPanel/BtnConnect").GetComponent<Button>();
+		btnConnect.GetComponent<Image>().sprite = uiTheme.sendButton;
+		btnConnect.GetComponent<Image>().type = Image.Type.Sliced;
+		btnConnect.onClick.AddListener(() => {
 			nickname = inputUserName.text;
 			userId = nickname; // Please assign user's unique id.
 
-			if (nickname == null || nickname.Length <= 0) {
+			if (nickname == null || nickname.Length <= 0)
+			{
 				return;
 			}
 
-			SendBirdClient.Connect (userId, (user, e) => {
-				if (e != null) {
-					Debug.Log (e.Code + ": " + e.Message);
+			btnConnect.gameObject.SetActive(false);
+
+			btnOpenChannelList.gameObject.SetActive(true);
+			btnStartGroupChannel.gameObject.SetActive(true);
+			btnGroupChannelList.gameObject.SetActive(true);
+
+			SendBirdClient.Connect(userId, (user, e) => {  // 
+				if (e != null)
+				{
+					Debug.Log(e.Code + ": " + e.Message);
 					return;
 				}
 
-
-				btnConnect.gameObject.SetActive (false);
-
-				btnOpenChannelList.gameObject.SetActive (true);
-				btnStartGroupChannel.gameObject.SetActive (true);
-				btnGroupChannelList.gameObject.SetActive (true);
-
-				SendBirdClient.UpdateCurrentUserInfo (nickname, null, (e1) => {
-					if (e1 != null) {
-						Debug.Log (e.Code + ": " + e.Message);
+				SendBirdClient.UpdateCurrentUserInfo(nickname, null, (e1) => {
+					if (e1 != null)
+					{
+						Debug.Log(e.Code + ": " + e.Message);
 						return;
 					}
 
 				});
+
 			});
+
 		});
 
 
-		btnOpenChannelList = GameObject.Find ("SendBirdUnity/UIPanel/MenuPanel/BtnOpenChannel").GetComponent<Button> ();
-		btnOpenChannelList.GetComponent<Image> ().sprite = uiTheme.sendButton;
-		btnOpenChannelList.GetComponent<Image> ().type = Image.Type.Sliced;
-		btnOpenChannelList.onClick.AddListener (() => {
-			menuPanel.SetActive (false);
-			OpenOpenChannelList ();
+		btnOpenChannelList = GameObject.Find("SendBirdUnity/UIPanel/MenuPanel/BtnOpenChannel").GetComponent<Button>();
+		btnOpenChannelList.GetComponent<Image>().sprite = uiTheme.sendButton;
+		btnOpenChannelList.GetComponent<Image>().type = Image.Type.Sliced;
+		btnOpenChannelList.onClick.AddListener(() => {
+			menuPanel.SetActive(false);
+			OpenOpenChannelList();
 		});
 
-		btnStartGroupChannel = GameObject.Find ("SendBirdUnity/UIPanel/MenuPanel/BtnStartGroupChannel").GetComponent<Button> ();
-		btnStartGroupChannel.GetComponent<Image> ().sprite = uiTheme.sendButton;
-		btnStartGroupChannel.GetComponent<Image> ().type = Image.Type.Sliced;
-		btnStartGroupChannel.onClick.AddListener (() => {
-			menuPanel.SetActive (false);
+		btnStartGroupChannel = GameObject.Find("SendBirdUnity/UIPanel/MenuPanel/BtnStartGroupChannel").GetComponent<Button>();
+		btnStartGroupChannel.GetComponent<Image>().sprite = uiTheme.sendButton;
+		btnStartGroupChannel.GetComponent<Image>().type = Image.Type.Sliced;
+		btnStartGroupChannel.onClick.AddListener(() => {
+			menuPanel.SetActive(false);
 
-			OpenUserList ();
+			OpenUserList();
 		});
 
-		btnGroupChannelList = GameObject.Find ("SendBirdUnity/UIPanel/MenuPanel/BtnGroupChannel").GetComponent<Button> ();
-		btnGroupChannelList.GetComponent<Image> ().sprite = uiTheme.sendButton;
-		btnGroupChannelList.GetComponent<Image> ().type = Image.Type.Sliced;
-		btnGroupChannelList.onClick.AddListener (() => {
-			menuPanel.SetActive (false);
+		btnGroupChannelList = GameObject.Find("SendBirdUnity/UIPanel/MenuPanel/BtnGroupChannel").GetComponent<Button>();
+		btnGroupChannelList.GetComponent<Image>().sprite = uiTheme.sendButton;
+		btnGroupChannelList.GetComponent<Image>().type = Image.Type.Sliced;
+		btnGroupChannelList.onClick.AddListener(() => {
+			menuPanel.SetActive(false);
 
-			OpenGroupChannelList ();
+			OpenGroupChannelList();
 		});
 
-		inputUserName = GameObject.Find ("SendBirdUnity/UIPanel/MenuPanel/InputUserName").GetComponent<InputField> ();
-		inputUserName.GetComponent<Image> ().sprite = uiTheme.inputTextBG;
+		inputUserName = GameObject.Find("SendBirdUnity/UIPanel/MenuPanel/InputUserName").GetComponent<InputField>();
+		inputUserName.GetComponent<Image>().sprite = uiTheme.inputTextBG;
 
 		#endregion
 
 		#region OpenChannel
 
-		openChannelPanel = GameObject.Find ("SendBirdUnity/UIPanel/OpenChannelPanel");
-		openChannelPanel.GetComponent<Image> ().sprite = uiTheme.chatFrameBG;
+		openChannelPanel = GameObject.Find("SendBirdUnity/UIPanel/OpenChannelPanel");
+		openChannelPanel.GetComponent<Image>().sprite = uiTheme.chatFrameBG;
 
-		txtOpenChannelContent = GameObject.Find ("SendBirdUnity/UIPanel/OpenChannelPanel/ScrollArea/TxtContent").GetComponent<Text> (); // (Text);
+		txtOpenChannelContent = GameObject.Find("SendBirdUnity/UIPanel/OpenChannelPanel/ScrollArea/TxtContent").GetComponent<Text>(); // (Text);
 		txtOpenChannelContent.color = uiTheme.messageColor;
 
-		txtOpenChannelTitle = GameObject.Find ("SendBirdUnity/UIPanel/OpenChannelPanel/TxtTitle").GetComponent<Text> ();
+		txtOpenChannelTitle = GameObject.Find("SendBirdUnity/UIPanel/OpenChannelPanel/TxtTitle").GetComponent<Text>();
 		txtOpenChannelTitle.color = uiTheme.titleColor;
 
-		openChannelScrollbar = GameObject.Find ("SendBirdUnity/UIPanel/OpenChannelPanel/Scrollbar").GetComponent<Scrollbar> ();
+		openChannelScrollbar = GameObject.Find("SendBirdUnity/UIPanel/OpenChannelPanel/Scrollbar").GetComponent<Scrollbar>();
 
 		ColorBlock cb = openChannelScrollbar.colors;
 		cb.normalColor = uiTheme.scrollBarColor;
 		cb.pressedColor = uiTheme.scrollBarColor;
 		cb.highlightedColor = uiTheme.scrollBarColor;
 		openChannelScrollbar.colors = cb;
-		openChannelScrollbar.onValueChanged.AddListener ((float value) => {
-			if (value <= 0) {
+		openChannelScrollbar.onValueChanged.AddListener((float value) => {
+			if (value <= 0)
+			{
 				autoScroll = true;
 				lastTextPositionY = txtOpenChannelContent.transform.position.y;
 				return;
 			}
 
-			if (lastTextPositionY - txtOpenChannelContent.transform.position.y >= 100) {
+			if (lastTextPositionY - txtOpenChannelContent.transform.position.y >= 100)
+			{
 				autoScroll = false;
 			}
 
 			lastTextPositionY = txtOpenChannelContent.transform.position.y;
 		});
 
-		inputOpenChannel = GameObject.Find ("SendBirdUnity/UIPanel/OpenChannelPanel/InputOpenChannel").GetComponent<InputField> ();
-		inputOpenChannel.GetComponent<Image> ().sprite = uiTheme.inputTextBG;
-		inputOpenChannel.onEndEdit.AddListener ((string msg) => {
-			SubmitOpenChannel ();
+		inputOpenChannel = GameObject.Find("SendBirdUnity/UIPanel/OpenChannelPanel/InputOpenChannel").GetComponent<InputField>();
+		inputOpenChannel.GetComponent<Image>().sprite = uiTheme.inputTextBG;
+		inputOpenChannel.onEndEdit.AddListener((string msg) => {
+			SubmitOpenChannel();
 		});
 
-		GameObject.Find ("SendBirdUnity/UIPanel/OpenChannelPanel/InputOpenChannel/Placeholder").GetComponent<Text> ().color = uiTheme.inputTextPlaceholderColor;
-		GameObject.Find ("SendBirdUnity/UIPanel/OpenChannelPanel/InputOpenChannel/Text").GetComponent<Text> ().color = uiTheme.inputTextColor;
+		GameObject.Find("SendBirdUnity/UIPanel/OpenChannelPanel/InputOpenChannel/Placeholder").GetComponent<Text>().color = uiTheme.inputTextPlaceholderColor;
+		GameObject.Find("SendBirdUnity/UIPanel/OpenChannelPanel/InputOpenChannel/Text").GetComponent<Text>().color = uiTheme.inputTextColor;
 
-		btnOpenChannelSend = GameObject.Find ("SendBirdUnity/UIPanel/OpenChannelPanel/BtnOpenChannelSend").GetComponent<Button> ();
-		btnOpenChannelSend.GetComponent<Image> ().sprite = uiTheme.sendButton;
-		btnOpenChannelSend.GetComponentInChildren<Text> ().color = uiTheme.sendButtonColor;
-		btnOpenChannelSend.onClick.AddListener (() => {
-			SubmitOpenChannel ();
+		btnOpenChannelSend = GameObject.Find("SendBirdUnity/UIPanel/OpenChannelPanel/BtnOpenChannelSend").GetComponent<Button>();
+		btnOpenChannelSend.GetComponent<Image>().sprite = uiTheme.sendButton;
+		btnOpenChannelSend.GetComponentInChildren<Text>().color = uiTheme.sendButtonColor;
+		btnOpenChannelSend.onClick.AddListener(() => {
+			SubmitOpenChannel();
 		});
 
-		btnOpenChannelClose = GameObject.Find ("SendBirdUnity/UIPanel/OpenChannelPanel/BtnOpenChannelClose").GetComponent<Button> ();
-		btnOpenChannelClose.GetComponent<Image> ().sprite = uiTheme.closeButton;
-		btnOpenChannelClose.onClick.AddListener (() => {
-			openChannelPanel.SetActive (false);
-			menuPanel.SetActive (true);
+		btnOpenChannelClose = GameObject.Find("SendBirdUnity/UIPanel/OpenChannelPanel/BtnOpenChannelClose").GetComponent<Button>();
+		btnOpenChannelClose.GetComponent<Image>().sprite = uiTheme.closeButton;
+		btnOpenChannelClose.onClick.AddListener(() => {
+			openChannelPanel.SetActive(false);
+			menuPanel.SetActive(true);
+
 		});
 
 		#endregion
 
 		#region ChannelList
 
-		openChannelListPanel = GameObject.Find ("SendBirdUnity/UIPanel/OpenChannelListPanel");
-		openChannelListPanel.GetComponent<Image> ().sprite = uiTheme.channelListFrameBG;
+		openChannelListPanel = GameObject.Find("SendBirdUnity/UIPanel/OpenChannelListPanel");
+		openChannelListPanel.GetComponent<Image>().sprite = uiTheme.channelListFrameBG;
 
-		channelGridPannel = GameObject.Find ("SendBirdUnity/UIPanel/OpenChannelListPanel/ScrollArea/GridPanel");
+		channelGridPannel = GameObject.Find("SendBirdUnity/UIPanel/OpenChannelListPanel/ScrollArea/GridPanel");
 
-		GameObject.Find ("SendBirdUnity/UIPanel/OpenChannelListPanel/TxtTitle").GetComponent<Text> ().color = uiTheme.titleColor;
+		GameObject.Find("SendBirdUnity/UIPanel/OpenChannelListPanel/TxtTitle").GetComponent<Text>().color = uiTheme.titleColor;
 
-		var channelScrollbar = GameObject.Find ("SendBirdUnity/UIPanel/OpenChannelListPanel/Scrollbar").GetComponent<Scrollbar> ();
+		var channelScrollbar = GameObject.Find("SendBirdUnity/UIPanel/OpenChannelListPanel/Scrollbar").GetComponent<Scrollbar>();
 		cb = channelScrollbar.colors;
 		cb.normalColor = uiTheme.scrollBarColor;
 		cb.pressedColor = uiTheme.scrollBarColor;
 		cb.highlightedColor = uiTheme.scrollBarColor;
 		channelScrollbar.colors = cb;
 
-		channelScrollbar.onValueChanged.AddListener ((float value) => {
-			if (value <= 0) {
-				LoadOpenChannels ();
+		channelScrollbar.onValueChanged.AddListener((float value) => {
+			if (value <= 0)
+			{
+				LoadOpenChannels();
 			}
 		});
 
-		btnOpenChannelListClose = GameObject.Find ("SendBirdUnity/UIPanel/OpenChannelListPanel/BtnOpenChannelListClose").GetComponent<Button> ();
-		btnOpenChannelListClose.GetComponent<Image> ().sprite = uiTheme.closeButton;
-		btnOpenChannelListClose.onClick.AddListener (() => {
-			openChannelListPanel.SetActive (false);
+		btnOpenChannelListClose = GameObject.Find("SendBirdUnity/UIPanel/OpenChannelListPanel/BtnOpenChannelListClose").GetComponent<Button>();
+		btnOpenChannelListClose.GetComponent<Image>().sprite = uiTheme.closeButton;
+		btnOpenChannelListClose.onClick.AddListener(() => {
+			openChannelListPanel.SetActive(false);
 			menuPanel.SetActive(true);
+
 		});
 
 		#endregion
 
 		#region GroupChannel
 
-		groupChannelPanel = GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelPanel");
-		groupChannelPanel.GetComponent<Image> ().sprite = uiTheme.chatFrameBG;
+		groupChannelPanel = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel");
+		groupChannelPanel.GetComponent<Image>().sprite = uiTheme.chatFrameBG;
 
-		txtGroupChannelTitle = GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelPanel/TxtTitle").GetComponent<Text> ();
+		txtGroupChannelTitle = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/TxtTitle").GetComponent<Text>();
 		txtGroupChannelTitle.color = uiTheme.titleColor;
 
-		btnGroupChannelClose = GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelPanel/BtnGroupChannelClose").GetComponent<Button> ();
-		btnGroupChannelClose.GetComponent<Image> ().sprite = uiTheme.closeButton;
-		btnGroupChannelClose.onClick.AddListener (() => {
-			groupChannelPanel.SetActive (false);
-			menuPanel.SetActive (true);
+		groupScrollArea = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/ScrollArea");
+		editableScrollArea = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/EditableScrollArea");
+		editableGridPannel = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/EditableScrollArea/GridPanel");
+
+		btnGroupChannelLeave = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/BtnGroupChannelLeave").GetComponent<Button>();
+		btnGroupChannelLeave.GetComponent<Image>().sprite = uiTheme.channelButtonOff;
+		btnGroupChannelLeave.onClick.AddListener(() => {
+			groupChannelPanel.SetActive(false);
+			menuPanel.SetActive(true);
+
+			foreach (UnityEngine.Object obj in btnMessage)
+			{
+				GameObject.Destroy(obj);
+			}
+			btnMessage.Clear();
+
+			string channelUrl = currentChannel.Url;
+			GroupChannel.GetChannel(channelUrl, new GroupChannel.GroupChannelGetHandler((GroupChannel groupChannel1, SendBirdException e1) =>
+			{
+				try
+				{
+					if (e1 != null)
+					{
+
+					}
+
+					groupChannel1.Leave(new GroupChannel.GroupChannelLeaveHandler((SendBirdException e2) =>
+					{
+
+					}));
+					// When you delete a Group Channel you no longer use
+					if (groupChannel1.Members.Count == 0)
+						groupChannel1.DeleteChannel(channelUrl, new GroupChannel.GroupChannelLeaveHandler((SendBirdException e3) =>
+						{
+
+						}));
+
+				}
+				catch (Exception z)
+				{
+					Debug.Log(z);
+				}
+			}));
 		});
 
-		txtGroupChannelContent = GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelPanel/ScrollArea/TxtContent").GetComponent<Text> (); // (Text);
+		btnGroupChannelClose = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/BtnGroupChannelClose").GetComponent<Button>();
+		btnGroupChannelClose.GetComponent<Image>().sprite = uiTheme.closeButton;
+		btnGroupChannelClose.onClick.AddListener(() => {
+			groupChannelPanel.SetActive(false);
+			menuPanel.SetActive(true);
+
+			// sskim add
+			string channelUrl = currentChannel.Url;
+			GroupChannel.GetChannel(channelUrl, new GroupChannel.GroupChannelGetHandler((GroupChannel groupChannel1, SendBirdException e1) =>
+			{
+				try
+				{
+					if (e1 != null)
+					{
+					}
+					groupChannelListPanel.SetActive(false);
+
+				}
+				catch (Exception z)
+				{
+					Debug.Log(z);
+				}
+			}));
+		});
+
+		txtGroupChannelContent = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/ScrollArea/TxtContent").GetComponent<Text>(); // (Text);
 		txtGroupChannelContent.color = uiTheme.messageColor;
 
-		txtGroupChannelTitle = GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelPanel/TxtTitle").GetComponent<Text> ();
+		//txtGroupChannelContent2 = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/EditableScrollArea/GridPanel/PrevChatListItem/TxtContent").GetComponent<Text>(); // (Text);
+		//txtGroupChannelContent2.color = uiTheme.messageColor;
+
+		txtGroupChannelTitle = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/TxtTitle").GetComponent<Text>();
 		txtGroupChannelTitle.color = uiTheme.titleColor;
 
-		groupChannelScrollbar = GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelPanel/Scrollbar").GetComponent<Scrollbar> ();
+		groupChannelScrollbar = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/ScrollArea/Scrollbar").GetComponent<Scrollbar>();
 		ColorBlock cb_groupChannel = groupChannelScrollbar.colors;
 		cb_groupChannel.normalColor = uiTheme.scrollBarColor;
 		cb_groupChannel.pressedColor = uiTheme.scrollBarColor;
 		cb_groupChannel.highlightedColor = uiTheme.scrollBarColor;
 		groupChannelScrollbar.colors = cb_groupChannel;
-		groupChannelScrollbar.onValueChanged.AddListener ((float value) => {
-			if (value <= 0) {
+		groupChannelScrollbar.onValueChanged.AddListener((float value) => {
+			if (value <= 0)
+			{
 				autoScroll = true;
 				lastTextPositionY = txtGroupChannelContent.transform.position.y;
 				return;
 			}
 
-			if (lastTextPositionY - txtGroupChannelContent.transform.position.y >= 100) {
+			if (lastTextPositionY - txtGroupChannelContent.transform.position.y >= 30)
+			{
 				autoScroll = false;
 			}
 
 			lastTextPositionY = txtGroupChannelContent.transform.position.y;
 		});
 
-		inputGroupChannel = GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelPanel/InputGroupChannel").GetComponent<InputField> ();
-		inputGroupChannel.GetComponent<Image> ().sprite = uiTheme.inputTextBG;
-		inputGroupChannel.onEndEdit.AddListener ((string msg) => {
-			SubmitGroupChannel ();
+		inputGroupChannel = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/InputGroupChannel").GetComponent<InputField>();
+		inputGroupChannel.GetComponent<Image>().sprite = uiTheme.inputTextBG;
+		inputGroupChannel.onEndEdit.AddListener((string msg) => {
+			SubmitGroupChannel();
 		});
 
-		GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelPanel/InputGroupChannel/Placeholder").GetComponent<Text> ().color = uiTheme.inputTextPlaceholderColor;
-		GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelPanel/InputGroupChannel/Text").GetComponent<Text> ().color = uiTheme.inputTextColor;
+		GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/InputGroupChannel/Placeholder").GetComponent<Text>().color = uiTheme.inputTextPlaceholderColor;
+		GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/InputGroupChannel/Text").GetComponent<Text>().color = uiTheme.inputTextColor;
 
-		btnGroupChannelSend = GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelPanel/BtnGroupChannelSend").GetComponent<Button> ();
-		btnGroupChannelSend.GetComponent<Image> ().sprite = uiTheme.sendButton;
-		btnGroupChannelSend.GetComponentInChildren<Text> ().color = uiTheme.sendButtonColor;
-		btnGroupChannelSend.onClick.AddListener (() => {
-			SubmitGroupChannel ();
+		btnGroupChannelSend = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/BtnGroupChannelSend").GetComponent<Button>();
+		btnGroupChannelSend.GetComponent<Image>().sprite = uiTheme.sendButton;
+		btnGroupChannelSend.GetComponentInChildren<Text>().color = uiTheme.sendButtonColor;
+		btnGroupChannelSend.onClick.AddListener(() => {
+			SubmitGroupChannel();
+		});
+
+		groupChannelScrollbar2 = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelPanel/EditableScrollArea/Scrollbar2").GetComponent<Scrollbar>();
+		cb = groupChannelScrollbar2.colors;
+		cb.normalColor = uiTheme.scrollBarColor;
+		cb.pressedColor = uiTheme.scrollBarColor;
+		cb.highlightedColor = uiTheme.scrollBarColor;
+		groupChannelScrollbar2.colors = cb;
+		groupChannelScrollbar2.onValueChanged.AddListener((float value) => {
+			if (btnMessage.Count > 0)
+			{
+				if (value <= 0)
+				{
+					autoScroll = true; 
+					lastTextPositionY = ((GameObject)btnMessage[btnMessage.Count-1]).transform.position.y;
+					return;
+				}
+
+				if (lastTextPositionY - ((GameObject)btnMessage[btnMessage.Count - 1]).transform.position.y >= 30)
+				{
+					autoScroll = false;
+				}
+
+				lastTextPositionY = ((GameObject)btnMessage[btnMessage.Count - 1]).transform.position.y;
+			}
 		});
 
 		#endregion
 
 		#region UserList
 
-		userListPanel = GameObject.Find ("SendBirdUnity/UIPanel/UserListPanel");
-		userListPanel.GetComponent<Image> ().sprite = uiTheme.channelListFrameBG;
+		userListPanel = GameObject.Find("SendBirdUnity/UIPanel/UserListPanel");
+		userListPanel.GetComponent<Image>().sprite = uiTheme.channelListFrameBG;
 
-		userListGridPanel = GameObject.Find ("SendBirdUnity/UIPanel/UserListPanel/ScrollArea/GridPanel");
+		userListGridPanel = GameObject.Find("SendBirdUnity/UIPanel/UserListPanel/ScrollArea/GridPanel");
 
-		GameObject.Find ("SendBirdUnity/UIPanel/UserListPanel/TxtTitle").GetComponent<Text> ().color = uiTheme.titleColor;
+		GameObject.Find("SendBirdUnity/UIPanel/UserListPanel/TxtTitle").GetComponent<Text>().color = uiTheme.titleColor;
 
-		var userListScrollBar = GameObject.Find ("SendBirdUnity/UIPanel/UserListPanel/Scrollbar").GetComponent<Scrollbar> ();
+		var userListScrollBar = GameObject.Find("SendBirdUnity/UIPanel/UserListPanel/Scrollbar").GetComponent<Scrollbar>();
 		cb = userListScrollBar.colors;
 		cb.normalColor = uiTheme.scrollBarColor;
 		cb.pressedColor = uiTheme.scrollBarColor;
 		cb.highlightedColor = uiTheme.scrollBarColor;
 		userListScrollBar.colors = cb;
-		userListScrollBar.onValueChanged.AddListener ((float value) => {
-			if (value <= 0) {
-				LoadUsers ();
+		userListScrollBar.onValueChanged.AddListener((float value) => {
+			if (value <= 0)
+			{
+				LoadUsers();
 			}
 		});
 
-		btnUserListClose = GameObject.Find ("SendBirdUnity/UIPanel/UserListPanel/BtnUserListClose").GetComponent<Button> ();
-		btnUserListClose.GetComponent<Image> ().sprite = uiTheme.closeButton;
-		btnUserListClose.onClick.AddListener (() => {
-			userListPanel.SetActive (false);
-			menuPanel.SetActive (true);
+		btnUserListClose = GameObject.Find("SendBirdUnity/UIPanel/UserListPanel/BtnUserListClose").GetComponent<Button>();
+		btnUserListClose.GetComponent<Image>().sprite = uiTheme.closeButton;
+		btnUserListClose.onClick.AddListener(() => {
+			userListPanel.SetActive(false);
+			menuPanel.SetActive(true);
 		});
 
-		btnInvite = GameObject.Find ("SendBirdUnity/UIPanel/UserListPanel/BtnInvite").GetComponent<Button> ();
-		btnInvite.GetComponent<Image> ().sprite = uiTheme.sendButton;
-		btnInvite.onClick.AddListener (() => {
-			if(mUserList.Count <= 0)
+		btnInvite = GameObject.Find("SendBirdUnity/UIPanel/UserListPanel/BtnInvite").GetComponent<Button>();
+		btnInvite.GetComponent<Image>().sprite = uiTheme.sendButton;
+		btnInvite.onClick.AddListener(() => {
+			if (mUserList.Count <= 0)
 			{
+				Debug.Log("Please select one or more.");
 				return;
 			}
 
-			userListPanel.SetActive (false);
-			groupChannelPanel.SetActive (true);
-
 			GroupChannel.CreateChannelWithUserIds(mUserList, false, (channel, e) => {
-				if(e != null)
+				if (e != null)
 				{
 					Debug.Log(e.Code + ": " + e.Message);
 					return;
 				}
 
+				userListPanel.SetActive(false);
+
+				editableScrollArea.SetActive(true);
+				groupScrollArea.SetActive(false);
+
+				groupChannelPanel.SetActive(true);
 				currentChannel = channel;
 				ResetGroupChannelContent();
-				txtGroupChannelTitle.text = GetDisplayMemberNames(channel.Members);
+				txtGroupChannelTitle.text = channel.Name + ":" + GetDisplayMemberNames(channel.Members);
+
+
 			});
 		});
 
@@ -688,98 +987,138 @@ public class SendBirdUI : MonoBehaviour
 
 		#region GroupChannelList
 
-		groupChannelListPanel = GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelListPanel");
-		groupChannelListPanel.GetComponent<Image> ().sprite = uiTheme.channelListFrameBG;
+		groupChannelListPanel = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelListPanel");
+		groupChannelListPanel.GetComponent<Image>().sprite = uiTheme.channelListFrameBG;
 
-		groupChannelListGridPanel = GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelListPanel/ScrollArea/GridPanel");
+		groupChannelListGridPanel = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelListPanel/ScrollArea/GridPanel");
 
-		GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelListPanel/TxtTitle").GetComponent<Text> ().color = uiTheme.titleColor;
+		GameObject.Find("SendBirdUnity/UIPanel/GroupChannelListPanel/TxtTitle").GetComponent<Text>().color = uiTheme.titleColor;
 
-		var groupChannelListScrollbar = GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelListPanel/Scrollbar").GetComponent<Scrollbar> ();
+		var groupChannelListScrollbar = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelListPanel/Scrollbar").GetComponent<Scrollbar>();
 		cb = groupChannelListScrollbar.colors;
 		cb.normalColor = uiTheme.scrollBarColor;
 		cb.pressedColor = uiTheme.scrollBarColor;
 		cb.highlightedColor = uiTheme.scrollBarColor;
 		groupChannelListScrollbar.colors = cb;
-		groupChannelListScrollbar.onValueChanged.AddListener ((float value) => {
-			if (value <= 0) {
+		groupChannelListScrollbar.onValueChanged.AddListener((float value) => {
+			if (value <= 0)
+			{
 				LoadGroupChannels();
 			}
 		});
 
-		btnGroupChannelClose = GameObject.Find ("SendBirdUnity/UIPanel/GroupChannelListPanel/BtnGroupChannelListClose").GetComponent<Button> ();
-		btnGroupChannelClose.GetComponent<Image> ().sprite = uiTheme.closeButton;
-		btnGroupChannelClose.onClick.AddListener (() => {
-			groupChannelListPanel.SetActive (false);
-			if (!groupChannelListPanel.activeSelf) {
-				menuPanel.SetActive (true);
+		btnGroupChannelClose = GameObject.Find("SendBirdUnity/UIPanel/GroupChannelListPanel/BtnGroupChannelListClose").GetComponent<Button>();
+		btnGroupChannelClose.GetComponent<Image>().sprite = uiTheme.closeButton;
+		btnGroupChannelClose.onClick.AddListener(() => {
+			groupChannelListPanel.SetActive(false);
+			if (!groupChannelListPanel.activeSelf)
+			{
+				menuPanel.SetActive(true);
 			}
 		});
 
 		#endregion
 
-		uiPanel.SetActive (true);
-		menuPanel.SetActive (true);
-		openChannelListPanel.SetActive (false);
-		openChannelPanel.SetActive (false);
-		groupChannelPanel.SetActive (false);
-		userListPanel.SetActive (false);
-		groupChannelListPanel.SetActive (false);
+		uiPanel.SetActive(true);
+		menuPanel.SetActive(true);
+		openChannelListPanel.SetActive(false);
+		openChannelPanel.SetActive(false);
+		groupChannelPanel.SetActive(false);
+		userListPanel.SetActive(false);
+		groupChannelListPanel.SetActive(false);
+
 	}
 
-	string UserMessageRichText (UserMessage message)
+	string UserMessageRichText(UserMessage message)
 	{
-		return "<color=#" + SendBirdTheme.ToHex (uiTheme.senderColor) + ">" + message.Sender.Nickname + ": </color>" + message.Message;
+		return "<color=#" + SendBirdTheme.ToHex(uiTheme.senderColor) + ">" + message.Sender.Nickname + ": </color>" + message.Message;
 	}
 
-	string FileMessageRichText (FileMessage message)
+	string FileMessageRichText(FileMessage message)
 	{
-		return "<color=#" + SendBirdTheme.ToHex (uiTheme.senderColor) + ">" + message.Sender.Nickname + ": </color>" + message.Name;
+		return "<color=#" + SendBirdTheme.ToHex(uiTheme.senderColor) + ">" + message.Sender.Nickname + ": </color>" + message.Name;
 	}
 
-	string AdminMessageRichText (AdminMessage message)
+	string AdminMessageRichText(AdminMessage message)
 	{
-		return "<color=#" + SendBirdTheme.ToHex (uiTheme.systemMessageColor) + ">" + message.Message + "</color>";
+		return "<color=#" + SendBirdTheme.ToHex(uiTheme.systemMessageColor) + ">" + message.Message + "</color>";
 	}
 
-	void ScrollToBottom ()
+	void ScrollToBottom()
 	{
 		openChannelScrollbar.value = 0;
 		groupChannelScrollbar.value = 0;
+		groupChannelScrollbar2.value = 0;
 	}
 
-	void SubmitOpenChannel ()
+	void SubmitOpenChannel()
 	{
-		if (inputOpenChannel.text.Length > 0) {
-			if (currentChannel != null && currentChannel.IsOpenChannel ()) {
-				currentChannel.SendUserMessage (inputOpenChannel.text, (message, e) => {
-					if(e != null)
+		if (inputOpenChannel.text.Length > 0)
+		{
+			if (currentChannel != null && currentChannel.IsOpenChannel())
+			{
+				currentChannel.SendUserMessage(inputOpenChannel.text, (message, e) => {
+					if (e != null)
 					{
 						Debug.Log(e.Code + ": " + e.Message);
 						return;
 					}
 
-					txtOpenChannelContent.text = txtOpenChannelContent.text + (UserMessageRichText (message) + "\n");
-				
+					txtOpenChannelContent.text = txtOpenChannelContent.text + (UserMessageRichText(message) + "\n");
+
 					ScrollToBottom();
 				});
 				inputOpenChannel.text = "";
 			}
 		}
+
 	}
 
-	void SubmitGroupChannel ()
+	void OpenLiveUserList()
 	{
-		if (inputGroupChannel.text.Length > 0) {
-			if (currentChannel != null && currentChannel.IsGroupChannel ()) {
-				
-				currentChannel.SendUserMessage (inputGroupChannel.text, (message, e) => {
-					if (e != null) {
-						Debug.Log (e.Code + ": " + e.Message);
+		foreach (UnityEngine.Object btnUser in btnUsers)
+		{
+			GameObject.Destroy(btnUser);
+		}
+		btnUsers.Clear();
+
+		userListPanel.SetActive(true);
+		OpenChannel openChannel = (OpenChannel)currentChannel;
+
+		mUserListQuery = openChannel.CreateParticipantListQuery();
+		mUserListQuery.Limit = 50;
+
+		LoadUsers();
+
+	}
+	void SubmitGroupChannel()
+	{
+		if (inputGroupChannel.text.Length > 0)
+		{
+			if (currentChannel != null && currentChannel.IsGroupChannel())
+			{
+				currentChannel.SendUserMessage(inputGroupChannel.text, (message, e) => {
+					if (e != null)
+					{
+						Debug.Log(e.Code + ": " + e.Message);
 						return;
 					}
+					GameObject objMessage = Instantiate(messageListItemPrefab, editableGridPannel.transform) as GameObject;
 
-					txtGroupChannelContent.text = txtGroupChannelContent.text + (UserMessageRichText (message) + "\n");
+					ChannelMessage msg = objMessage.GetComponent<ChannelMessage>();
+					msg.userId = SendBirdClient.CurrentUser.UserId;
+					msg.message = ((UserMessage)message).Message;
+					msg.messageId = message.MessageId;
+					msg.messageText.text = UserMessageRichText(message);
+					objMessage.GetComponent<Button>().enabled = true;
+					btnMessage.Add(objMessage);
+
+					objMessage.GetComponent<Button>().onClick.AddListener(() =>
+					{
+						msg = objMessage.GetComponent<ChannelMessage>();
+						UpdateMessage(msg);
+					});
+
 					ScrollToBottom();
 				});
 				inputGroupChannel.text = "";
@@ -789,22 +1128,31 @@ public class SendBirdUI : MonoBehaviour
 
 	#region helpers
 
-	private string GetDisplayMemberNames (List<User> members)
+	private string GetDisplayMemberNames(List<Member> members)
 	{
-		if (members.Count < 2) {
+		if (members.Count < 2)
+		{
 			return "No Members";
-		} else if (members.Count == 2) {
-			StringBuilder names = new StringBuilder ();
-			foreach (var member in members) {
-				if (member.UserId.Equals (SendBirdClient.CurrentUser.UserId)) {
+		}
+		else if (members.Count == 2)
+		{
+			StringBuilder names = new StringBuilder();
+			foreach (var member in members)
+			{
+				if (member.UserId.Equals(SendBirdClient.CurrentUser.UserId))
+				{
 					continue;
 				}
 
-				names.Append (", " + member.Nickname);
+				names.Append(", " + member.Nickname);
+
 			}
-			return (string)names.Remove (0, 2).ToString ();
-			;
-		} else {
+
+			return (string)names.Remove(0, 2).ToString();
+
+		}
+		else
+		{
 			return "Group " + members.Count;
 		}
 	}
