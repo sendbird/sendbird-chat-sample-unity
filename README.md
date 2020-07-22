@@ -1,23 +1,25 @@
-SendBird Unity Sample UI
-===========
+# Sendbird Unity samples
+![Platform](https://img.shields.io/badge/platform-UNITY%20%7C%20.NET-orange.svg)
+![Languages](https://img.shields.io/badge/language-C%23-orange.svg)
 
-### Creating a SendBird Application
+## Introduction
 
-The first thing you need to do is to sign up in **[SendBird Dashboard](https://dashboard.sendbird.com)** and create a SendBird application.
-You should use one application per one service across various platforms.
-Users in different applications can't talk to each other.
+[Sendbird](https://sendbird.com) provides the chat API and SDK for your app, enabling real-time communication among the users. Here are various samples built using Sendbird Chat SDK.
 
-### Open the project from Unity 
+- **Chat sample** has core chat features. Group channel and open channel are the two main channel types in which you can create various subtypes where users can send and receive messages. This sample is written in C# with [Sendbird Chat SDK](https://github.com/sendbird/SendBird-SDK-dotNET).
 
-You can open the sample project from Unity.
+## Installation
 
-This project is tested on `Unity 2017.4.0f1`.
+To use our Unity samples, you should first install [Chat SDK for Unity](https://github.com/sendbird/SendBird-SDK-dotNET) on your system.
 
-Build and run the Sample UI project to play with Open Chat or Group Chat.
+### Requirements
 
-- The sample project is shipped with **Testing App ID**.
-- You must replace with your own **App ID** found in **SendBird Dashboard** for a production app.
+This sample project is tested on `Unity 2017.4.0f1`.
 
-### Access to Version 2
+### Chat sample
 
-You can check out `v2` branch instead of `master` branch to download version 2 samples.
+The sample project works based on our test application's `APP_ID`. You should replace with your own Sendbird application's `APP_ID` which can be found in [Sendbird Dashboard](https://dashboard.sendbird.com).
+
+## Previous versions
+
+You can access the version 2 sample from the repository by switching from `master` to `v2` branch.
