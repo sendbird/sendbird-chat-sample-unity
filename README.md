@@ -18,7 +18,7 @@ This sample project is tested on `Unity 2017.4.0f1`.
 
 ### Chat sample
 
-The sample project works based on our test application's `APP_ID`. You should replace with your own Sendbrid application's `APP_ID` which can be found in [Sendbird Dashboard](https://dashboard.sendbird.com).
+The sample project works based on our test application's `APP_ID`. You should replace with your own Sendbird application's `APP_ID` which can be found in [Sendbird Dashboard](https://dashboard.sendbird.com).
 
 ## Previous versions
 
