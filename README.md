@@ -1,4 +1,4 @@
-# Sendbird Unity samples
+# Sendbird Unity sample
 ![Platform](https://img.shields.io/badge/platform-UNITY%20%7C%20.NET-orange.svg)
 ![Languages](https://img.shields.io/badge/language-C%23-orange.svg)
 
@@ -21,6 +21,12 @@ This sample project is tested on `Unity 2017.4.0f1`.
 ### Chat sample
 
 The sample project works based on our test application's `APP_ID`. You should replace with your own Sendbird application's `APP_ID` which can be found in [Sendbird Dashboard](https://dashboard.sendbird.com).
+
+### Try the sample app using your data 
+
+If you would like to try the sample app specifically fit to your usage, you can do so by replacing the default sample app ID with yours, which you can obtain by [creating your Sendbird application from the dashboard](https://docs.sendbird.com/unity/quick_start#3_step_1_create_a_sendbird_application_from_your_dashboard). Furthermore, you could also add data of your choice on the dashboard to test. This will allow you to experience the sample app with data from your Sendbird application. 
+
+<br />
 
 ## Previous versions
 
