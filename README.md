@@ -8,6 +8,8 @@
 
 - **Chat sample** has core chat features. Group channel and open channel are the two main channel types in which you can create various subtypes where users can send and receive messages. This sample is written in C# with [Sendbird Chat SDK](https://github.com/sendbird/SendBird-SDK-dotNET).
 
+<br />
+
 ## Installation
 
 To use our Unity samples, you should first install [Chat SDK for Unity](https://github.com/sendbird/SendBird-SDK-dotNET) on your system.
