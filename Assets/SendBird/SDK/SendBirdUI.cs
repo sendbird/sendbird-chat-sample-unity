@@ -1031,12 +1031,12 @@ public class SendBirdUI : MonoBehaviour
 
 	string UserMessageRichText(UserMessage message)
 	{
-		return "<color=#" + SendBirdTheme.ToHex(uiTheme.senderColor) + ">" + message.Sender.Nickname + ": </color>" + message.Message;
+		return "<color=#" + SendBirdTheme.ToHex(uiTheme.senderColor) + ">" + message.GetSender().Nickname + ": </color>" + message.Message;
 	}
 
 	string FileMessageRichText(FileMessage message)
 	{
-		return "<color=#" + SendBirdTheme.ToHex(uiTheme.senderColor) + ">" + message.Sender.Nickname + ": </color>" + message.Name;
+		return "<color=#" + SendBirdTheme.ToHex(uiTheme.senderColor) + ">" + message.GetSender().Nickname + ": </color>" + message.Name;
 	}
 
 	string AdminMessageRichText(AdminMessage message)
