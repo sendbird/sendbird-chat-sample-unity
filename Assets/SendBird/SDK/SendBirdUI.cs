@@ -379,7 +379,12 @@ public class SendBirdUI : MonoBehaviour
 
 		LoadUsers();
 	}
-
+	
+// #################### SECURITY TIPS ####################
+// Before launching, you should review "Allow retrieving user list from SDK" under ⚙️ Sendbird Dashboard ->Settings -> Security.
+// It's turned on at first to simplify running samples and implementing your first code.
+// Most apps will want to disable "Allow retrieving user list from SDK" as that could possibly expose user information
+// #################### SECURITY TIPS ####################
 	public void LoadUsers()
 	{
 		mUserListQuery.Next((list, e) => {
@@ -960,8 +965,12 @@ public class SendBirdUI : MonoBehaviour
 			{
 				Debug.Log("Please select one or more.");
 				return;
-			}
-
+			} 
+			//#################### SECURITY TIPS ####################
+			// Before launching, you should review "Allow creating group channels from SDK" under ⚙️ Sendbird Dashboard -> Settings -> Security.
+			// It's turned on at first to simplify running samples and implementing your first code.
+			// Most apps will want to disable "Allow creating group channels from SDK" as that could cause unwanted operations.
+			//#################### SECURITY TIPS ####################
 			GroupChannel.CreateChannelWithUserIds(mUserList, false, (channel, e) => {
 				if (e != null)
 				{
