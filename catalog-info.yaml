@@ -1,0 +1,12 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: sendbird-chat-sample-unity
+  description: Chat sample for Unity
+  annotations:
+    github.com/project-slug: sendbird/sendbird-chat-sample-unity
+spec:
+  type: library
+  lifecycle: production
+  owner: dep-client-platform
+  system: sendbird-chat
